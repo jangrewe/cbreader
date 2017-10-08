@@ -78,9 +78,31 @@ if($_GET['get'] == 'comics') {
   header("Content-Type: application/json");
   echo $json;
   die;
+
+
+} else if($_GET['get'] == 'pages' && !empty($_GET['issue']) && !empty($_GET['comic'])) {
+
+  $pathInfo = pathinfo($basePath.'/'.$_GET['comic'].'/'.$_GET['issue']);
+  if($pathInfo['extension'] == 'cbz') {
+    $pages = getCbzPages($_GET['comic'].'/'.$_GET['issue']);
+  } else if ($pathInfo['extension'] == 'cbr') {
+    $pages =  getCbrPages($_GET['comic'].'/'.$_GET['issue']);
+  }
+
+  header("Content-Type: application/json");
+  echo $json;
+  die;
+
+} else if(!empty($_GET['page']) && !empty($_GET['issue']) && !empty($_GET['comic'])) {
+  header("Content-Type: image/jpeg");
+  echo getCbzPage($_GET['comic'].'/'.$_GET['issue'], $_GET['page']);
+  die;
 }
 
 
+#
+# Thumbs
+#
 
 function createComicThumb($comic, $baseSize) {
   global $basePath;
@@ -96,7 +118,6 @@ function createComicThumb($comic, $baseSize) {
     
   return true;
 }
-
 
 function createCbzThumb($file) {
   global $basePath, $regexCover;
@@ -181,7 +202,6 @@ function createCbrThumb($file) {
   return true;
 }
 
-
 function renderThumb($thumb, $fp) {
   global $baseSize;
   $img = new Imagick();
@@ -200,6 +220,49 @@ function renderThumb($thumb, $fp) {
   $img->writeImage('jpg:'.$thumb);
 
   return true;
+}
+
+#
+# Pages
+#
+
+
+function getCbzPages($file) {
+  global $basePath;
+
+  $zip = new ZipArchive();
+  if ($zip->open($basePath.'/'.$file) !== true) {
+    debug("Can't open File.");
+    return false;
+  }
+
+  $zipFiles = array();
+  for( $i = 0; $i < $zip->numFiles; $i++ ){
+    if(preg_match('/\.(jpg|jpeg|png)$/i', $zip->statIndex($i)['name'])) {
+      array_push($zipFiles, $zip->statIndex($i)['name']);
+    }
+  }
+  $zip->close();
+  usort($zipFiles, 'isort');
+
+  if(count($zipFiles) > 0) {
+    $json = json_encode(array("count" => count($zipFiles), "pages" => $zipFiles));
+  }else{
+    $json = json_encode(array("count" => 0));
+  }
+  header("Content-Type: application/json");
+  echo $json;
+  die;
+}
+
+function getCbzPage($file, $page) {
+  global $basePath;
+  $zip = new ZipArchive;
+  if ($zip->open($basePath.'/'.$file) === TRUE) {
+    $output = $zip->getFromName($page);
+    $zip->close();
+  }
+  return $output;
 }
 
 

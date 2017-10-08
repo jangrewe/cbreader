@@ -24,6 +24,7 @@
   width: 219px;
   padding: .75rem;
   margin: 3px;
+  cursor: pointer;
 }
 
 .card > img {
