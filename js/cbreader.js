@@ -13,6 +13,8 @@ $.fn.spin.presets.spinSmall = {
   hwaccel: true
 }
 
+var lastPosition = null;
+
 $(document).ready(function() {
 
   $("#comics").spin('spinLarge', '#000');
@@ -37,6 +39,7 @@ function getComics() {
       prevChar = curChar;
       var comic = $('<div class="card" data-comic="'+title+'"><img class="card-img-top lazyload" src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" data-src="api.php?get=cover&comic='+encodeURIComponent(title)+'" alt="'+title+'" width="195" height="292"><p class="card-text">'+title+'</p></div>');
       comic.on('click', function() {
+        lastPosition = $(window).scrollTop();
         getIssues(title);
       });
       $('#comics #row_'+curChar).append(comic);
@@ -62,14 +65,22 @@ function getIssues(comic) {
       issuesList.append(issue);
     });
     issues.hide().appendTo($('#wrapper')).fadeIn('slow');
-     $('html, body').animate({
+      $('html, body').animate({
         scrollTop: $('#wrapper').offset().top - 16
       }, 'slow');
     $('.btnHome').on('click', function() {
-      $('#issues').fadeOut(function() {
-        $('#issues').remove();
-        $('#comics').fadeIn();
-      });
+      goHome();
     });
+  });
+}
+
+function goHome() {
+  $('#issues').fadeOut(function() {
+    window.location.hash = '';
+    $('#issues').remove();
+    $('#comics').fadeIn();
+    $('html, body').animate({
+      scrollTop: lastPosition
+    }, 'slow');
   });
 }
