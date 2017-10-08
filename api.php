@@ -93,10 +93,17 @@ if($_GET['get'] == 'comics') {
   echo $json;
   die;
 
+
 } else if(!empty($_GET['page']) && !empty($_GET['issue']) && !empty($_GET['comic'])) {
   header("Content-Type: image/jpeg");
-  echo getCbzPage($_GET['comic'].'/'.$_GET['issue'], $_GET['page']);
+  $pathInfo = pathinfo($basePath.'/'.$_GET['comic'].'/'.$_GET['issue']);
+  if($pathInfo['extension'] == 'cbz') {
+    echo getCbzPage($_GET['comic'].'/'.$_GET['issue'], $_GET['page']);
+  } else if ($pathInfo['extension'] == 'cbr') {
+    getCbrPage($_GET['comic'].'/'.$_GET['issue'], $_GET['page']);
+  }
   die;
+
 }
 
 
@@ -255,6 +262,35 @@ function getCbzPages($file) {
   die;
 }
 
+function getCbrPages($file) {
+  global $basePath;
+
+  $rar = RarArchive::open($basePath.'/'.$file);
+  if ($rar == false) {
+    debug("Can't open File.");
+    return false;
+  }
+
+  $rarEntries = $rar->getEntries();
+  $rarFiles = array();
+  foreach ($rarEntries as $entry) {
+    if(preg_match('/\.(jpg|jpeg|png)$/i', $entry->getName())) {
+      array_push($rarFiles, $entry->getName());
+    }
+  }
+
+  usort($rarFiles, 'isort');
+
+  if(count($rarFiles) > 0) {
+    $json = json_encode(array("count" => count($rarFiles), "pages" => $rarFiles));
+  }else{
+    $json = json_encode(array("count" => 0));
+  }
+  header("Content-Type: application/json");
+  echo $json;
+  die;
+}
+
 function getCbzPage($file, $page) {
   global $basePath;
   $zip = new ZipArchive;
@@ -265,6 +301,27 @@ function getCbzPage($file, $page) {
   return $output;
 }
 
+function getCbrPage($file, $page) {
+  global $basePath;
+  $rar = RarArchive::open($basePath.'/'.$file);
+  $rarEntries = $rar->getEntries();
+  $rarEntry = $rar->getEntry($page);
+  $stream = $rarEntry->getStream($rarEntry);
+  while (!feof($stream)) {
+    $output = fread($stream, 8192);
+    if ($buff !== false)
+        echo $output;
+    else
+        break;
+  }
+  fclose($stream);
+  return true;
+}
+
+
+#
+# Util
+#
 
 function isort($a, $b) {
   return strcasecmp(strtolower($a), strtolower($b));
