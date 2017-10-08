@@ -1,7 +1,7 @@
 <?php
 include_once('config.php');
 
-$debug = false;
+$debug = true;
 $baseSize = 195; // also used in css/cbstar.css (+ 2*12 = 219px)
 $regexCover = '/(fc|00fc|00c|00|01|cover|cvr)\.(jpg|jpeg|png)$/i';
 
@@ -31,10 +31,10 @@ if($_GET['get'] == 'comics') {
   
 } else if($_GET['get'] == 'cover' && !empty($_GET['comic']) && !isset($_GET['issue'])) {
 
-  $thumb = 'cache/'.md5($_GET['comic'].'/cover.jpg').'.jpg';
+  $thumb = 'cache/'.md5($_GET['comic']).'.jpg';
 
   if(!file_exists($thumb)) {
-    if(file_exists($basePath.'/'.$_GET['comic'].'/cover.jpg') && !createComicThumb($_GET['comic'].'/cover.jpg', $baseSize)) {
+    if(file_exists($basePath.'/'.$_GET['comic'].'/cover.jpg') && !createComicThumb($_GET['comic'], $baseSize)) {
       $thumb = 'img/nocover.jpg';
     }
   }
@@ -82,11 +82,11 @@ if($_GET['get'] == 'comics') {
 
 
 
-function createComicThumb($file, $baseSize) {
+function createComicThumb($comic, $baseSize) {
   global $basePath;
-  $thumb = 'cache/'.md5($file).'.jpg';
+  $thumb = 'cache/'.md5($comic).'.jpg';
   
-  $fp = fopen($basePath.'/'.$file, 'r');
+  $fp = fopen($basePath.'/'.$comic.'/cover.jpg', 'r');
   if(!$fp) {
     debug("Could not load image.");
     return false;
@@ -99,11 +99,11 @@ function createComicThumb($file, $baseSize) {
 
 
 function createCbzThumb($file) {
-  global $basePath;
+  global $basePath, $regexCover;
   $thumb = 'cache/'.md5($file).'.jpg';
 
   $zip = new ZipArchive();
-  if ($zip->open($basePath.'/'.$file) === FALSE) {
+  if ($zip->open($basePath.'/'.$file) !== true) {
     debug("Can't open File.");
     return false;
   }
@@ -139,7 +139,7 @@ function createCbzThumb($file) {
 }
 
 function createCbrThumb($file) {
-  global $basePath;
+  global $basePath, $regexCover;
   $thumb = 'cache/'.md5($file).'.jpg';
 
   $rar = RarArchive::open($basePath.'/'.$file);

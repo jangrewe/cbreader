@@ -17,6 +17,9 @@ $(document).ready(function() {
 
   $("#comics").spin('spinLarge', '#000');
   getComics();
+  if(window.location.hash) {
+    getIssues(decodeURIComponent(window.location.hash.substring(1)));
+  }
 
 });
 
@@ -25,16 +28,16 @@ function getComics() {
     $("#comics").spin(false);
     var prevChar = null;
     var curRow = null;
-    $.each(data.comics, function(i, e) {
-      var curChar = e.charAt(0)
+    $.each(data.comics, function(i, title) {
+      var curChar = title.charAt(0)
       if(curChar != prevChar) {
         var row = $('<div class="row rowHeader alert alert-dark"><h3>'+curChar+'</h3></div><div id="row_'+curChar+'" class="row rowComics"></div>');
         $('#comics').append(row);
       }
       prevChar = curChar;
-      var comic = $('<div class="card" data-comic="'+e+'"><img class="card-img-top lazyload" src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" data-src="api.php?get=cover&comic='+encodeURIComponent(e)+'" alt="'+e+'" width="195" height="292"><p class="card-text">'+e+'</p></div>');
+      var comic = $('<div class="card" data-comic="'+title+'"><img class="card-img-top lazyload" src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" data-src="api.php?get=cover&comic='+encodeURIComponent(title)+'" alt="'+title+'" width="195" height="292"><p class="card-text">'+title+'</p></div>');
       comic.on('click', function() {
-        getIssues($(this));
+        getIssues(title);
       });
       $('#comics #row_'+curChar).append(comic);
     });
@@ -42,12 +45,14 @@ function getComics() {
   });
 }
 
-function getIssues(cardComic) {
+function getIssues(comic) {
+  var cardComic = $('.card[data-comic="'+comic+'"]');
   $(cardComic).spin('spinSmall', '#000');
-  var comic = $(cardComic).data('comic');
+  //var comic = $(cardComic).data('comic');
   $.getJSON('api.php?get=issues&comic='+encodeURIComponent(comic), function(data) {
     $(cardComic).spin(false);
     $('#comics').fadeOut();
+    window.location.hash = comic;
     var issues = $('<div id="issues"></div>');
     var title = $('<div class="row rowHeader alert alert-dark"><button class="btn btn-light btnHome"><span class="oi oi-chevron-left"></span></button> <h3>'+comic+'</h3></div>');
     var issuesList = $('<div class="row rowComics"></div>');
