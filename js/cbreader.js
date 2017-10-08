@@ -57,7 +57,7 @@ function getComics() {
         lastPosition = $(window).scrollTop();
         getIssues(comic);
       });
-      $('#comics #row_'+curChar).append(comic);
+      $('#comics #row_'+curChar).append(comicCard);
     });
     $("#comics img.lazyload").lazyload();
   });
