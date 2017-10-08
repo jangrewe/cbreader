@@ -1,0 +1,46 @@
+.navbar {
+  margin-bottom: 0;
+}
+
+.cbreader {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  background-color: #f7f7f7;
+}
+
+.rowHeader {
+}
+
+.rowHeader button {
+  margin-right: 25px;
+}
+
+.rowComics {
+  margin-bottom: 16px;
+}
+
+.card {
+  float: left;
+  width: 219px;
+  padding: .75rem;
+  margin: 3px;
+}
+
+.card > img {
+  width: 195px;
+  margin-bottom: .75rem;
+}
+
+.card-text {
+  font-size: 75%;
+  text-align: center;
+}
+
+footer {
+  padding-top: 3rem;
+  padding-bottom: 3rem;
+}
+
+footer p {
+  margin-bottom: .25rem;
+}
