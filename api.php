@@ -3,6 +3,7 @@ include_once('config.php');
 
 $debug = false;
 $baseSize = 195; // also used in css/cbstar.css (+ 2*12 = 219px)
+$regexCover = '/(fc|00fc|00c|00|01|cover|cvr)\.(jpg|jpeg|png)$/i';
 
 if ($useCaching == true && !file_exists('./cache')) {
   mkdir('./cache');
@@ -47,7 +48,10 @@ if($_GET['get'] == 'comics') {
   $thumb = 'cache/'.md5($_GET['comic'].'/'.$_GET['issue']).'.jpg';
 
   if(!file_exists($thumb)) {
-    if(!createIssueThumb($_GET['comic'].'/'.$_GET['issue'], $baseSize)) {
+    $pathInfo = pathinfo($basePath.'/'.$_GET['comic'].'/'.$_GET['issue']);
+    if($pathInfo['extension'] == 'cbz' && !createCbzThumb($_GET['comic'].'/'.$_GET['issue'], $baseSize)) {
+      $thumb = 'img/nocover.jpg';
+    } else if ($pathInfo['extension'] == 'cbr' && !createCbrThumb($_GET['comic'].'/'.$_GET['issue'], $baseSize)) {
       $thumb = 'img/nocover.jpg';
     }
   }
@@ -60,7 +64,7 @@ if($_GET['get'] == 'comics') {
 } else if($_GET['get'] == 'issues' && !empty($_GET['comic'])) {
 
   $allFiles = new DirectoryIterator($basePath.'/'.$_GET['comic']);
-  $files = new RegexIterator($allFiles, '/\.(cbz)$/');
+  $files = new RegexIterator($allFiles, '/\.(cbz|cbr)$/');
   $arrFiles = array();
   foreach($files as $file) {
     array_push($arrFiles, $file->__toString());
@@ -88,31 +92,18 @@ function createComicThumb($file, $baseSize) {
     return false;
   }
   
-  $img = new Imagick();
-  $img->readImageFile($fp);
-  
-  $width = $img->getImageWidth();
-  $height = $img->getImageHeight();
-  $thumbWidth = $baseSize;
-  if($height > $width) {
-    $thumbHeight = $baseSize/2*3;
-  }else{
-    $thumbHeight = $baseSize/3*2;    
-  }
-
-  $img->cropThumbnailImage($thumbWidth, $thumbHeight);  
-  $img->writeImage('jpg:'.$thumb);
+  renderThumb($thumb, $fp, $baseSize);
     
   return true;
 }
 
 
-function createIssueThumb($file, $baseSize) {
+function createCbzThumb($file) {
   global $basePath;
   $thumb = 'cache/'.md5($file).'.jpg';
 
   $zip = new ZipArchive();
-  if ($zip->open($basePath.'/'.$file) !== true) {
+  if ($zip->open($basePath.'/'.$file) === FALSE) {
     debug("Can't open File.");
     return false;
   }
@@ -120,7 +111,7 @@ function createIssueThumb($file, $baseSize) {
   $coverFiles = array();
   $zipFiles = array();
   for( $i = 0; $i < $zip->numFiles; $i++ ){
-    if(preg_match('/(fc|0fc|0c|00|01|cover|cvr)\.(jpg|jpeg|png)$/i', $zip->statIndex($i)['name'])) {
+    if(preg_match($regexCover, $zip->statIndex($i)['name'])) {
       array_push($coverFiles, $zip->statIndex($i)['name']);
     }
     if(preg_match('/\.(jpg|jpeg|png)$/i', $zip->statIndex($i)['name'])) {
@@ -142,6 +133,57 @@ function createIssueThumb($file, $baseSize) {
     return false;
   }
   
+  renderThumb($thumb, $fp);
+  $zip->close();
+  return true;
+}
+
+function createCbrThumb($file) {
+  global $basePath;
+  $thumb = 'cache/'.md5($file).'.jpg';
+
+  $rar = RarArchive::open($basePath.'/'.$file);
+  if ($rar == false) {
+    debug("Can't open File.");
+    return false;
+  }
+
+  $rarEntries = $rar->getEntries();
+  
+  $coverFiles = array();
+  $rarFiles = array();
+
+  foreach ($rarEntries as $entry) {
+    if(preg_match($regexCover, $entry->getName())) {
+      array_push($coverFiles, $entry->getName());
+    }
+    if(preg_match('/\.(jpg|jpeg|png)$/i', $entry->getName())) {
+      array_push($rarFiles, $entry->getName());
+    }
+  }
+
+  if(count($coverFiles) > 0) {
+    //usort($coverFiles, 'isort');
+    $cover = $coverFiles[0];
+  } else {
+    usort($rarFiles, 'isort');
+    $cover = $rarFiles[0];
+  }
+  $rarEntry = $rar->getEntry($cover);
+  $fp = $rarEntry->getStream($rarEntry);
+  if(!$fp) {
+    debug("Could not load image.");
+    return false;
+  }
+  
+  renderThumb($thumb, $fp);
+  $rar->close();
+  return true;
+}
+
+
+function renderThumb($thumb, $fp) {
+  global $baseSize;
   $img = new Imagick();
   $img->readImageFile($fp);
   
@@ -156,8 +198,6 @@ function createIssueThumb($file, $baseSize) {
 
   $img->cropThumbnailImage($thumbWidth, $thumbHeight);  
   $img->writeImage('jpg:'.$thumb);
-
-  $zip->close();
 
   return true;
 }
