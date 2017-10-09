@@ -13,6 +13,11 @@ var viewerOpts = {
     'down': true
   }
 }
+var popoverOpts = {
+  placement: 'bottom',
+  content: '<a tabindex="0" class="btn btn-primary btnSelectCover" role="button">Select Cover</a>',
+  html: true
+}
 $.fn.spin.presets.spinLarge = {
   lines: 13,
   length: 20,
@@ -76,17 +81,28 @@ function getIssues(comic) {
     issues.append(title).append(issuesList);
     $.each(data.issues, function(i, issue) {
       var issueCard = $('<div class="card" data-comic="'+comic+'" data-issue="'+issue+'"><img class="card-img-top" src="api.php?get=cover&comic='+encodeURIComponent(comic)+'&issue='+encodeURIComponent(issue)+'" alt="'+issue+'"><p class="card-text">'+(issue.substr(0, issue.lastIndexOf('.')) || issue)+'</p></div>');
+      var issueOptions = $('<a class="issueOptions" tabindex="0" role="button" data-toggle="popover" title="Options"><span class="oi oi-cog" title="Options" aria-hidden="true"></span></a>');
+      issueCard.append(issueOptions);
       issuesList.append(issueCard);
-      issueCard.on('click', function() {
+      issueCard.find('img').on('click', function() {
         showIssue(comic, issue);
       });
     });
-    issues.hide().appendTo($('#wrapper')).fadeIn('slow');
+    issues.hide().appendTo($('#wrapper')).fadeIn('slow', function() {
       $('html, body').animate({
         scrollTop: $('#wrapper').offset().top - 16
       }, 'slow');
+    });
     $('.btnHome').on('click', function() {
       goHome();
+    });
+    $('[data-toggle="popover"]').popover(popoverOpts).on('shown.bs.popover', function () {
+      var comic = $(this).parent().data('comic');
+      var issue = $(this).parent().data('issue');
+      var trigger = $(this);
+      $('a.btnSelectCover').on('click', function() {
+        getCovers(comic, issue, $(this).parent(), trigger);
+      });
     });
   });
 }
@@ -101,6 +117,25 @@ function showIssue(comic, issue) {
       });
     });
     $('#modalViewer').modal('show');
+  });
+}
+
+function getCovers(comic, issue, container, trigger) {
+  $.getJSON('api.php?get=pages&issue='+encodeURIComponent(issue)+'&comic='+encodeURIComponent(comic)+'&cover=true', function(data) {
+    var covers = $('<div />');
+    $.each(data.pages, function(i, page) {
+      covers.append('<img class="selectCover" data-page="'+page+'" src="api.php?page='+encodeURIComponent(page)+'&issue='+encodeURIComponent(issue)+'&comic='+encodeURIComponent(comic)+'"/>');
+    });
+    $(container).empty().append(covers);
+    $('.selectCover').on('click', function() {
+      var page = $(this).data('page');
+      $.getJSON('api.php?set=cover&page='+encodeURIComponent(page)+'&issue='+encodeURIComponent(issue)+'&comic='+encodeURIComponent(comic), function(data) {
+        if(data.success == true) {
+          $(trigger).popover('dispose');
+          $('div.card[data-issue="'+issue+'"] img').attr('src', 'api.php?get=cover&comic='+encodeURIComponent(comic)+'&issue='+encodeURIComponent(issue)+'&'+ new Date().getTime());
+        }
+      });
+    });
   });
 }
 
