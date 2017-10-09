@@ -37,15 +37,16 @@ var lastPosition = null;
 
 $(document).ready(function() {
 
-  $("#comics").spin('spinLarge', '#000');
   getComics();
   if(window.location.hash) {
+    $("#comics").hide();
     getIssues(decodeURIComponent(window.location.hash.substring(1)));
   }
 
 });
 
 function getComics() {
+  $("#comics").spin('spinLarge', '#000');
   $.getJSON('api.php?get=comics', function(data) {
     $("#comics").spin(false);
     var prevChar = null;
@@ -70,17 +71,21 @@ function getComics() {
 
 function getIssues(comic) {
   var cardComic = $('.card[data-comic="'+comic+'"]');
-  $(cardComic).spin('spinSmall', '#000');
+  $(cardComic).spin('spinSmall', '#fff');
   $.getJSON('api.php?get=issues&comic='+encodeURIComponent(comic), function(data) {
     $(cardComic).spin(false);
-    $('#comics').fadeOut();
+    $('html, body').animate({
+      scrollTop: $('#wrapper').offset().top - 16
+    }, 'slow', function() {
+      $('#comics').fadeOut('slow');
+    });
     window.location.hash = comic;
     var issues = $('<div id="issues"></div>');
     var title = $('<div class="row rowHeader alert alert-dark"><button class="btn btn-light btnHome"><span class="oi oi-chevron-left"></span></button> <h3>'+comic+'</h3></div>');
     var issuesList = $('<div class="row rowComics"></div>');
     issues.append(title).append(issuesList);
     $.each(data.issues, function(i, issue) {
-      var issueCard = $('<div class="card" data-comic="'+comic+'" data-issue="'+issue+'"><img class="card-img-top" src="api.php?get=cover&comic='+encodeURIComponent(comic)+'&issue='+encodeURIComponent(issue)+'" alt="'+issue+'"><p class="card-text">'+(issue.substr(0, issue.lastIndexOf('.')) || issue)+'</p></div>');
+      var issueCard = $('<div class="card" data-comic="'+comic+'" data-issue="'+issue+'"><img class="card-img-top lazyload" src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" data-src="api.php?get=cover&comic='+encodeURIComponent(comic)+'&issue='+encodeURIComponent(issue)+'" alt="'+issue+'"><p class="card-text">'+(issue.substr(0, issue.lastIndexOf('.')) || issue)+'</p></div>');
       var issueOptions = $('<a class="issueOptions" tabindex="0" role="button" data-toggle="popover" title="Options"><span class="oi oi-cog" title="Options" aria-hidden="true"></span></a>');
       issueCard.append(issueOptions);
       issuesList.append(issueCard);
@@ -89,9 +94,7 @@ function getIssues(comic) {
       });
     });
     issues.hide().appendTo($('#wrapper')).fadeIn('slow', function() {
-      $('html, body').animate({
-        scrollTop: $('#wrapper').offset().top - 16
-      }, 'slow');
+      $("#wrapper img.lazyload").lazyload();
     });
     $('.btnHome').on('click', function() {
       goHome();
@@ -126,7 +129,7 @@ function getCovers(comic, issue, container, trigger, loadAll) {
     $.each(data.pages, function(i, page) {
       covers.append('<img class="selectCover" data-page="'+page+'" src="api.php?page='+encodeURIComponent(page)+'&issue='+encodeURIComponent(issue)+'&comic='+encodeURIComponent(comic)+'&cover=true"/>');
     });
-    var loadAll = $('<div class="loadAllCovers"><span class="oi oi-reload"></span></div>');
+    var loadAll = $('<div class="loadAllCovers"><a tabindex="0" role="button"><span class="oi oi-reload"></span></a></div>');
     loadAll.on('click', function() {
       getCovers(comic, issue, container, trigger, true);
     });
@@ -135,7 +138,7 @@ function getCovers(comic, issue, container, trigger, loadAll) {
       var page = $(this).data('page');
       $.getJSON('api.php?set=cover&page='+encodeURIComponent(page)+'&issue='+encodeURIComponent(issue)+'&comic='+encodeURIComponent(comic), function(data) {
         if(data.success == true) {
-          $(trigger).popover('dispose');
+          $(trigger).popover('hide');
           $('div.card[data-issue="'+issue+'"] img').attr('src', 'api.php?get=cover&comic='+encodeURIComponent(comic)+'&issue='+encodeURIComponent(issue)+'&'+ new Date().getTime());
         }
       });
@@ -159,6 +162,7 @@ $('#modalViewer').on('hidden.bs.modal', function (e) {
 });
 
 function goHome() {
+  $('[data-toggle="popover"]').popover('hide');
   $('#issues').fadeOut(function() {
     window.location.hash = '';
     $('#issues').remove();

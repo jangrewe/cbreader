@@ -29,6 +29,7 @@
 
 .card > img {
   width: 195px;
+  height: 292px;
   margin-bottom: .75rem;
 }
 
@@ -51,6 +52,7 @@ img.selectCover {
 
 .loadAllCovers {
   text-align: center;
+  cursor: pointer;
 }
 
 .popover{

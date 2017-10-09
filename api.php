@@ -5,10 +5,16 @@ $debug = true;
 $baseSize = 195; // also used in css/cbstar.css (+ 2*12 = 219px)
 $regexCover = '/(fc|00fc|cover|cov|cvr|front|\(cover\)|00c|00|01)\.(jpg|jpeg|png)$/i';
 
-if ($useCaching == true && !file_exists('./cache')) {
+if (!file_exists('./cache')) {
   mkdir('./cache');
 }
 
+if (isset($_GET['issue'])) {
+  $pathInfo = pathinfo($basePath.'/'.$_GET['comic'].'/'.$_GET['issue']);
+  $cbType = $pathInfo['extension'];
+}
+
+// get all comics
 if($_GET['get'] == 'comics') {
 
   $files = new DirectoryIterator($basePath);
@@ -28,13 +34,13 @@ if($_GET['get'] == 'comics') {
   echo $json;
   die;
 
-  
+
+// get the cover for a comic
 } else if($_GET['get'] == 'cover' && !empty($_GET['comic']) && !isset($_GET['issue'])) {
 
   $thumb = 'cache/'.md5($_GET['comic']).'.jpg';
-
   if(!file_exists($thumb)) {
-    if(file_exists($basePath.'/'.$_GET['comic'].'/cover.jpg') && !createComicThumb($_GET['comic'], $baseSize)) {
+    if(file_exists($basePath.'/'.$_GET['comic'].'/cover.jpg') && !createComicThumb($_GET['comic'])) {
       $thumb = 'img/nocover.jpg';
     }
   }
@@ -43,24 +49,21 @@ if($_GET['get'] == 'comics') {
   die;
 
 
+// get the cover for an issue
 } else if($_GET['get'] == 'cover' && !empty($_GET['comic']) && !empty($_GET['issue'])) {
 
   $thumb = 'cache/'.md5($_GET['comic'].'/'.$_GET['issue']).'.jpg';
-
   if(!file_exists($thumb)) {
-    $pathInfo = pathinfo($basePath.'/'.$_GET['comic'].'/'.$_GET['issue']);
-    if($pathInfo['extension'] == 'cbz' && !createCbzThumb($_GET['comic'].'/'.$_GET['issue'], $baseSize)) {
-      $thumb = 'img/nocover.jpg';
-    } else if ($pathInfo['extension'] == 'cbr' && !createCbrThumb($_GET['comic'].'/'.$_GET['issue'], $baseSize)) {
+    if(!createIssueThumb($_GET['comic'].'/'.$_GET['issue'])) {
       $thumb = 'img/nocover.jpg';
     }
   }
-
   header("Content-Type: image/jpeg");
   echo file_get_contents($thumb);
   die;
 
 
+// get all issues for a comic
 } else if($_GET['get'] == 'issues' && !empty($_GET['comic'])) {
 
   $allFiles = new DirectoryIterator($basePath.'/'.$_GET['comic']);
@@ -80,48 +83,35 @@ if($_GET['get'] == 'comics') {
   die;
 
 
+// get the list of pages of an issue
 } else if($_GET['get'] == 'pages' && !empty($_GET['issue']) && !empty($_GET['comic'])) {
 
-  $pathInfo = pathinfo($basePath.'/'.$_GET['comic'].'/'.$_GET['issue']);
-  if($pathInfo['extension'] == 'cbz') {
-    $pages = getCbzPages($_GET['comic'].'/'.$_GET['issue'], $_GET['cover']);
-  } else if ($pathInfo['extension'] == 'cbr') {
-    $pages =  getCbrPages($_GET['comic'].'/'.$_GET['issue'], $_GET['cover']);
-  }
-
+  $pages = getPages($_GET['comic'].'/'.$_GET['issue'], $_GET['cover']);
   header("Content-Type: application/json");
   echo $json;
   die;
 
 
+// get a page from an issue
 } else if(!empty($_GET['page']) && !empty($_GET['issue']) && !empty($_GET['comic']) && $_GET['set'] != 'cover') {
 
   header("Content-Type: image/jpeg");
-  $pathInfo = pathinfo($basePath.'/'.$_GET['comic'].'/'.$_GET['issue']);
-  if($pathInfo['extension'] == 'cbz') {
-    echo getCbzPage($_GET['comic'].'/'.$_GET['issue'], $_GET['page'], $_GET['cover']);
-  } else if ($pathInfo['extension'] == 'cbr') {
-    echo getCbrPage($_GET['comic'].'/'.$_GET['issue'], $_GET['page'], $_GET['cover']);
-  }
+  echo getPage($_GET['comic'].'/'.$_GET['issue'], $_GET['page'], $_GET['cover']);
   die;
 
 
+// set the cover for an issue
 } else if(!empty($_GET['page']) && !empty($_GET['issue']) && !empty($_GET['comic']) && $_GET['set'] == 'cover') {
 
   $thumb = 'cache/'.md5($_GET['comic'].'/'.$_GET['issue']).'.jpg';
-
-  $pathInfo = pathinfo($basePath.'/'.$_GET['comic'].'/'.$_GET['issue']);
-  if($pathInfo['extension'] == 'cbz') {
-    $blob = getCbzPage($_GET['comic'].'/'.$_GET['issue'], $_GET['page']);
-  } else if ($pathInfo['extension'] == 'cbr') {
-    $blob = getCbrPage($_GET['comic'].'/'.$_GET['issue'], $_GET['page']);
-  }
-
+  $blob = getPage($_GET['comic'].'/'.$_GET['issue'], $_GET['page']);
   if(renderThumb($thumb, $blob)) {
     $success = true;
   } else {
     $success = false;
   }
+
+  header("Content-Type: application/json");
   echo json_encode(array(
     'success' => $success
   ));
@@ -134,89 +124,30 @@ if($_GET['get'] == 'comics') {
 # Thumbs
 #
 
-function createComicThumb($comic, $baseSize) {
-  global $basePath;
-  $thumb = 'cache/'.md5($comic).'.jpg';
-  
-  $stream = fopen($basePath.'/'.$comic.'/cover.jpg', 'r');
-  $blob = stream_get_contents($stream);
-  renderThumb($thumb, $blob);
-  return true;
+function createComicThumb($comic) {
+  global $basePath, $baseSize;
+  $thumb = 'cache/'.md5($comic).'.jpg';  
+  $blob = file_get_contents($basePath.'/'.$comic.'/cover.jpg');
+  return renderThumb($thumb, $blob);
 }
 
-function createCbzThumb($file) {
-  global $basePath, $regexCover;
+function createIssueThumb($file) {
+  global $basePath, $regexCover, $cbType;
   $thumb = 'cache/'.md5($file).'.jpg';
-
-  $zip = new ZipArchive();
-  if ($zip->open($basePath.'/'.$file) !== true) {
-    debug("Can't open File.");
-    return false;
-  }
-
-  $coverFiles = array();
-  $zipFiles = array();
-  for( $i = 0; $i < $zip->numFiles; $i++ ){
-    if(preg_match($regexCover, $zip->statIndex($i)['name'])) {
-      array_push($coverFiles, $zip->statIndex($i)['name']);
+  if($cbType == 'cbz') {
+    if(!$files = getZipContents($file, true)) {
+      $files = getZipContents($file, false);
+      usort($files, 'isort');
     }
-    if(preg_match('/\.(jpg|jpeg|png)$/i', $zip->statIndex($i)['name'])) {
-      array_push($zipFiles, $zip->statIndex($i)['name']);
+    $blob = getFileFromZip($file, current($files));
+  } else if($cbType == 'cbr') {
+    if(!$files = getRarContents($file, true)) {
+      $files = getRarContents($file, false);
+      usort($files, 'isort');
     }
-  }
-
-  if(count($coverFiles) > 0) {
-    //usort($coverFiles, 'isort');
-    $cover = $coverFiles[0];
-  } else {
-    usort($zipFiles, 'isort');
-    $cover = $zipFiles[0];
-  }
-  
-  $stream = $zip->getStream($cover);
-  $blob = stream_get_contents($stream);
-  $zip->close();
-  renderThumb($thumb, $blob);
-  return true;
-}
-
-function createCbrThumb($file) {
-  global $basePath, $regexCover;
-  $thumb = 'cache/'.md5($file).'.jpg';
-
-  $rar = RarArchive::open($basePath.'/'.$file);
-  if ($rar == false) {
-    debug("Can't open File.");
-    return false;
-  }
-
-  $rarEntries = $rar->getEntries();
-  
-  $coverFiles = array();
-  $rarFiles = array();
-
-  foreach ($rarEntries as $entry) {
-    if(preg_match($regexCover, $entry->getName())) {
-      array_push($coverFiles, $entry->getName());
-    }
-    if(preg_match('/\.(jpg|jpeg|png)$/i', $entry->getName())) {
-      array_push($rarFiles, $entry->getName());
-    }
-  }
-
-  if(count($coverFiles) > 0) {
-    //usort($coverFiles, 'isort');
-    $cover = $coverFiles[0];
-  } else {
-    usort($rarFiles, 'isort');
-    $cover = $rarFiles[0];
-  }
-  $rarEntry = $rar->getEntry($cover);
-  $stream = $rarEntry->getStream($rarEntry);
-  $blob = stream_get_contents($stream);
-  $rar->close();
-  renderThumb($thumb, $blob);
-  return true;
+    $blob = getFileFromRar($file, current($files));
+  }  
+  return renderThumb($thumb, $blob);
 }
 
 function renderThumb($thumb, $blob) {
@@ -242,111 +173,126 @@ function renderThumb($thumb, $blob) {
   return true;
 }
 
+
 #
 # Pages
 #
 
+function getPages($file, $cover = false) {
+  global $basePath, $regexCover, $cbType;
+  if ($cbType == 'cbz') {
+    $files = getZipContents($file, $cover);  
+  } else if ($cbType == 'cbr') {
+    $files = getRarContents($file, $cover);  
+  }  
+  usort($files, 'isort');
+  if(count($files) > 0) {
+    $json = json_encode(array("count" => count($files), "pages" => $files));
+  }else{
+    $json = json_encode(array("count" => 0));
+  }
+  header("Content-Type: application/json");
+  echo $json;
+  die;
+}
 
-function getCbzPages($file, $cover = false) {
+function getPage($file, $page, $cover = false) {
+  global $basePath, $cbType;
+  if ($cbType == 'cbz') {
+    $blob = getFileFromZip($file, $page);
+  } else if ($cbType == 'cbr') {
+    $blob = getFileFromRar($file, $page);
+  }
+  if($cover == true) {
+    $blob = renderThumb(false, $blob);
+  }
+  return $blob;
+}
+
+
+#
+# Zip Handling
+#
+
+function getZipContents($zipFile, $cover) {
   global $basePath, $regexCover;
-
   $zip = new ZipArchive();
-  if ($zip->open($basePath.'/'.$file) !== true) {
+  if ($zip->open($basePath.'/'.$zipFile) !== true) {
     debug("Can't open File.");
     return false;
   }
-
-  $zipFiles = array();
-  for( $i = 0; $i < $zip->numFiles; $i++ ){
+  $files = array();
+  for($i=0; $i<$zip->numFiles; $i++){
     if($cover == false) {
       if(preg_match('/\.(jpg|jpeg|png)$/i', $zip->statIndex($i)['name'])) {
-        array_push($zipFiles, $zip->statIndex($i)['name']);
+        array_push($files, $zip->statIndex($i)['name']);
       }
     } else {
       if(preg_match($regexCover, $zip->statIndex($i)['name'])) {
-        array_push($zipFiles, $zip->statIndex($i)['name']);
+        array_push($files, $zip->statIndex($i)['name']);
       }
     }
   }
   $zip->close();
-  usort($zipFiles, 'isort');
-
-  if(count($zipFiles) > 0) {
-    if(limit != false) {
-      $zipFiles = array_slice($zipFiles, 0, $limit);
-    }
-    $json = json_encode(array("count" => count($zipFiles), "pages" => $zipFiles));
-  }else{
-    $json = json_encode(array("count" => 0));
-  }
-  header("Content-Type: application/json");
-  echo $json;
-  die;
+  return $files;
 }
 
-function getCbrPages($file, $cover = false) {
-  global $basePath, $regexCover;
+function getFileFromZip($zipFile, $file) {
+  global $basePath;
+  $zip = new ZipArchive();
+  if ($zip->open($basePath.'/'.$zipFile) !== true) {
+    debug("Can't open File.");
+    return false;
+  }
+  $stream = $zip->getStream($file);
+  $blob = stream_get_contents($stream);
+  fclose($stream);
+  $zip->close();
+  return $blob;
+}
 
-  $rar = RarArchive::open($basePath.'/'.$file);
+
+#
+# Rar Handling
+#
+
+function getRarContents($rarFile, $cover) {
+  global $basePath, $regexCover;
+  $rar = RarArchive::open($basePath.'/'.$rarFile);
   if ($rar == false) {
     debug("Can't open File.");
     return false;
   }
-
   $rarEntries = $rar->getEntries();
-  $rarFiles = array();
+  $files = array();
   foreach ($rarEntries as $entry) {
     if($cover == false) {
       if(preg_match('/\.(jpg|jpeg|png)$/i', $entry->getName())) {
-        array_push($rarFiles, $entry->getName());
+        array_push($files, $entry->getName());
       }
     } else {
       if(preg_match($regexCover, $entry->getName())) {
-        array_push($rarFiles, $entry->getName());
+        array_push($files, $entry->getName());
       }
     }
   }
-
-  usort($rarFiles, 'isort');
-
-  if(count($rarFiles) > 0) {
-    if(limit != false) {
-      $rarFiles = array_slice($rarFiles, 0, $limit);
-    }
-    $json = json_encode(array("count" => count($rarFiles), "pages" => $rarFiles));
-  }else{
-    $json = json_encode(array("count" => 0));
-  }
-  header("Content-Type: application/json");
-  echo $json;
-  die;
+  $rar->close();
+  return $files;
 }
 
-function getCbzPage($file, $page, $cover = false) {
+function getFileFromRar($rarFile, $file) {
   global $basePath;
-  $zip = new ZipArchive;
-  if ($zip->open($basePath.'/'.$file) === TRUE) {
-    $output = $zip->getFromName($page);
-    $zip->close();
+  $rar = RarArchive::open($basePath.'/'.$rarFile);
+  if ($rar == false) {
+    debug("Can't open File.");
+    return false;
   }
-  if($cover == true) {
-    $output = renderThumb(false, $output);
-  }
-  return $output;
-}
-
-function getCbrPage($file, $page, $cover = false) {
-  global $basePath;
-  $rar = RarArchive::open($basePath.'/'.$file);
-  $rarEntries = $rar->getEntries();
-  $rarEntry = $rar->getEntry($page);
+  $rarEntry = $rar->getEntry($file);
   $stream = $rarEntry->getStream($rarEntry);
-  $output = stream_get_contents($stream);
+  $blob = @stream_get_contents($stream);
   fclose($stream);
-  if($cover == true) {
-    $output = renderThumb(false, $output);
-  }
-  return $output;
+  $rar->close();
+  return $blob;
 }
 
 
