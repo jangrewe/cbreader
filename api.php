@@ -99,9 +99,9 @@ if($_GET['get'] == 'comics') {
   header("Content-Type: image/jpeg");
   $pathInfo = pathinfo($basePath.'/'.$_GET['comic'].'/'.$_GET['issue']);
   if($pathInfo['extension'] == 'cbz') {
-    echo getCbzPage($_GET['comic'].'/'.$_GET['issue'], $_GET['page']);
+    echo getCbzPage($_GET['comic'].'/'.$_GET['issue'], $_GET['page'], $_GET['cover']);
   } else if ($pathInfo['extension'] == 'cbr') {
-    getCbrPage($_GET['comic'].'/'.$_GET['issue'], $_GET['page']);
+    echo getCbrPage($_GET['comic'].'/'.$_GET['issue'], $_GET['page'], $_GET['cover']);
   }
   die;
 
@@ -112,12 +112,12 @@ if($_GET['get'] == 'comics') {
 
   $pathInfo = pathinfo($basePath.'/'.$_GET['comic'].'/'.$_GET['issue']);
   if($pathInfo['extension'] == 'cbz') {
-    $page = getCbzPage($_GET['comic'].'/'.$_GET['issue'], $_GET['page']);
+    $blob = getCbzPage($_GET['comic'].'/'.$_GET['issue'], $_GET['page']);
   } else if ($pathInfo['extension'] == 'cbr') {
-    $page = getCbrPage($_GET['comic'].'/'.$_GET['issue'], $_GET['page']);
+    $blob = getCbrPage($_GET['comic'].'/'.$_GET['issue'], $_GET['page']);
   }
 
-  if(renderThumb($thumb, false, $page)) {
+  if(renderThumb($thumb, $blob)) {
     $success = true;
   } else {
     $success = false;
@@ -138,14 +138,9 @@ function createComicThumb($comic, $baseSize) {
   global $basePath;
   $thumb = 'cache/'.md5($comic).'.jpg';
   
-  $fp = fopen($basePath.'/'.$comic.'/cover.jpg', 'r');
-  if(!$fp) {
-    debug("Could not load image.");
-    return false;
-  }
-  
-  renderThumb($thumb, $fp, false);
-    
+  $stream = fopen($basePath.'/'.$comic.'/cover.jpg', 'r');
+  $blob = stream_get_contents($stream);
+  renderThumb($thumb, $blob);
   return true;
 }
 
@@ -178,14 +173,10 @@ function createCbzThumb($file) {
     $cover = $zipFiles[0];
   }
   
-  $fp = $zip->getStream($cover);
-  if(!$fp) {
-    debug("Could not load image.");
-    return false;
-  }
-  
-  renderThumb($thumb, $fp, false);
+  $stream = $zip->getStream($cover);
+  $blob = stream_get_contents($stream);
   $zip->close();
+  renderThumb($thumb, $blob);
   return true;
 }
 
@@ -221,26 +212,18 @@ function createCbrThumb($file) {
     $cover = $rarFiles[0];
   }
   $rarEntry = $rar->getEntry($cover);
-  $fp = $rarEntry->getStream($rarEntry);
-  if(!$fp) {
-    debug("Could not load image.");
-    return false;
-  }
-  
-  renderThumb($thumb, $fp, false);
+  $stream = $rarEntry->getStream($rarEntry);
+  $blob = stream_get_contents($stream);
   $rar->close();
+  renderThumb($thumb, $blob);
   return true;
 }
 
-function renderThumb($thumb, $fp = false, $blob = false) {
+function renderThumb($thumb, $blob) {
   global $baseSize;
   $img = new Imagick();
-  if($fp != false) {
-    $img->readImageFile($fp);
-  } else if ($blob != false) {
-    $img->readImageBlob($blob);
-  }
-  
+  $img->readImageBlob($blob);
+    
   $width = $img->getImageWidth();
   $height = $img->getImageHeight();
   $thumbWidth = $baseSize;
@@ -250,9 +233,12 @@ function renderThumb($thumb, $fp = false, $blob = false) {
     $thumbHeight = $baseSize/3*2;    
   }
 
-  $img->cropThumbnailImage($thumbWidth, $thumbHeight);  
-  $img->writeImage('jpg:'.$thumb);
-
+  $img->cropThumbnailImage($thumbWidth, $thumbHeight);
+  if($thumb == false) {
+    return $img->getImageBlob();
+  } else {
+    $img->writeImage('jpg:'.$thumb);
+  }
   return true;
 }
 
@@ -336,17 +322,20 @@ function getCbrPages($file, $cover = false) {
   die;
 }
 
-function getCbzPage($file, $page) {
+function getCbzPage($file, $page, $cover = false) {
   global $basePath;
   $zip = new ZipArchive;
   if ($zip->open($basePath.'/'.$file) === TRUE) {
     $output = $zip->getFromName($page);
     $zip->close();
   }
+  if($cover == true) {
+    $output = renderThumb(false, $output);
+  }
   return $output;
 }
 
-function getCbrPage($file, $page) {
+function getCbrPage($file, $page, $cover = false) {
   global $basePath;
   $rar = RarArchive::open($basePath.'/'.$file);
   $rarEntries = $rar->getEntries();
@@ -354,6 +343,9 @@ function getCbrPage($file, $page) {
   $stream = $rarEntry->getStream($rarEntry);
   $output = stream_get_contents($stream);
   fclose($stream);
+  if($cover == true) {
+    $output = renderThumb(false, $output);
+  }
   return $output;
 }
 
