@@ -101,7 +101,7 @@ function getIssues(comic) {
       var issue = $(this).parent().data('issue');
       var trigger = $(this);
       $('a.btnSelectCover').on('click', function() {
-        getCovers(comic, issue, $(this).parent(), trigger);
+        getCovers(comic, issue, $(this).parent(), trigger, false);
       });
     });
   });
@@ -120,13 +120,17 @@ function showIssue(comic, issue) {
   });
 }
 
-function getCovers(comic, issue, container, trigger) {
-  $.getJSON('api.php?get=pages&issue='+encodeURIComponent(issue)+'&comic='+encodeURIComponent(comic)+'&cover=true', function(data) {
+function getCovers(comic, issue, container, trigger, loadAll) {
+  $.getJSON('api.php?get=pages&issue='+encodeURIComponent(issue)+'&comic='+encodeURIComponent(comic)+((loadAll == true)?'':'&cover=true'), function(data) {
     var covers = $('<div />');
     $.each(data.pages, function(i, page) {
       covers.append('<img class="selectCover" data-page="'+page+'" src="api.php?page='+encodeURIComponent(page)+'&issue='+encodeURIComponent(issue)+'&comic='+encodeURIComponent(comic)+'"/>');
     });
-    $(container).empty().append(covers);
+    var loadAll = $('<div class="loadAllCovers"><span class="oi oi-reload"></span></div>');
+    loadAll.on('click', function() {
+      getCovers(comic, issue, container, trigger, true);
+    });
+    $(container).empty().append(covers).append(loadAll);
     $('.selectCover').on('click', function() {
       var page = $(this).data('page');
       $.getJSON('api.php?set=cover&page='+encodeURIComponent(page)+'&issue='+encodeURIComponent(issue)+'&comic='+encodeURIComponent(comic), function(data) {
