@@ -74,10 +74,8 @@ function getIssues(comic) {
   $(cardComic).spin('spinSmall', '#fff');
   $.getJSON('api.php?get=issues&comic='+encodeURIComponent(comic), function(data) {
     $(cardComic).spin(false);
-    $('html, body').animate({
-      scrollTop: $('#wrapper').offset().top - 16
-    }, 'slow', function() {
-      $('#comics').fadeOut('slow');
+    $('#comics').fadeOut('slow', function() {
+      $('html, body').scrollTop($('#wrapper').offset().top - 16);
     });
     window.location.hash = comic;
     var issues = $('<div id="issues"></div>');
@@ -163,12 +161,12 @@ $('#modalViewer').on('hidden.bs.modal', function (e) {
 
 function goHome() {
   $('[data-toggle="popover"]').popover('hide');
-  $('#issues').fadeOut(function() {
+  $('#issues').fadeOut('slow', function() {
     window.location.hash = '';
     $('#issues').remove();
-    $('#comics').fadeIn();
+    $('#comics').fadeIn('slow');
     $('html, body').animate({
       scrollTop: lastPosition
-    }, 'slow');
+    }, 'fast');
   });
 }
