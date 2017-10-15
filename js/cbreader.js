@@ -56,7 +56,7 @@ function getComics() {
     $.each(data.comics, function(i, comic) {
       var curChar = comic.charAt(0)
       if(curChar != prevChar) {
-        var title = $('<div class="row rowHeader alert alert-dark"><button type="button" class="btn btn-light btn-sm btnUp"><span class="oi oi-chevron-top"></span></button>'+curChar+'</div>');
+        var title = $('<div class="row rowHeader alert alert-dark"><button class="btn btn-light btn-sm btnUp"><span class="oi oi-chevron-top"></span></button>'+curChar+'</div>');
         var comics = $('<div id="row_'+curChar+'" class="row rowComics"></div>');
         $('#comics').append(title).append(comics);
         var navChar = $('<li class="nav-item"><a class="nav-link" href="#row_'+curChar+'">'+curChar+'</a></li>');
@@ -91,11 +91,16 @@ function getIssues(comic) {
     $(cardComic).spin(false);
     window.location.hash = comic;
     var issues = $('#issues');
-    var title = $('<div class="row rowHeader alert alert-dark"><button class="btn btn-light btnHome"><span class="oi oi-chevron-left"></span></button> <h3>'+comic+'</h3></div>');
+    var title = $('<div class="row rowHeader alert alert-dark"><button class="btn btn-light btn-sm btnHome"><span class="oi oi-chevron-left"></span></button>'+comic+'</div>');
     var issuesList = $('<div class="row rowComics"></div>');
     $.each(data.issues, function(i, issue) {
       var issueCard = $('<div class="card" data-comic="'+comic+'" data-issue="'+issue+'"><img class="card-img-top lazyload" src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" data-src="api.php?get=cover&comic='+encodeURIComponent(comic)+'&issue='+encodeURIComponent(issue)+'" alt="'+issue+'"><p class="card-text">'+(issue.substr(0, issue.lastIndexOf('.')) || issue)+'</p></div>');
       var issueOptions = $('<a class="issueOptions" tabindex="0" role="button" data-toggle="popover" title="Options"><span class="oi oi-cog" title="Options" aria-hidden="true"></span></a>');
+      issueCard.hover(function() {
+        issueOptions.stop().fadeIn('slow');
+      }, function() {
+        issueOptions.stop().fadeOut('slow');
+      });
       issueCard.append(issueOptions);
       issuesList.append(issueCard);
       issueCard.find('img').on('click', function() {
