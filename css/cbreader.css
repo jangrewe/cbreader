@@ -2,6 +2,10 @@ html, body {
   height: 100%;
 }
 
+body {
+  margin-top: 56px;
+}
+
 .cbreader {
   min-height: 100%;
 }
@@ -17,6 +21,8 @@ html, body {
 }
 
 .rowHeader {
+  font-size: 1.3rem;
+  font-weight: bolder;
 }
 
 .rowHeader button {
