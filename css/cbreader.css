@@ -75,3 +75,7 @@ footer {
 footer p {
   margin-bottom: .25rem;
 }
+
+#issues {
+  display: none;
+}

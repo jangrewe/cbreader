@@ -74,14 +74,10 @@ function getIssues(comic) {
   $(cardComic).spin('spinSmall', '#fff');
   $.getJSON('api.php?get=issues&comic='+encodeURIComponent(comic), function(data) {
     $(cardComic).spin(false);
-    $('#comics').fadeOut('slow', function() {
-      $('html, body').scrollTop($('#wrapper').offset().top - 16);
-    });
     window.location.hash = comic;
-    var issues = $('<div id="issues"></div>');
+    var issues = $('#issues');
     var title = $('<div class="row rowHeader alert alert-dark"><button class="btn btn-light btnHome"><span class="oi oi-chevron-left"></span></button> <h3>'+comic+'</h3></div>');
     var issuesList = $('<div class="row rowComics"></div>');
-    issues.append(title).append(issuesList);
     $.each(data.issues, function(i, issue) {
       var issueCard = $('<div class="card" data-comic="'+comic+'" data-issue="'+issue+'"><img class="card-img-top lazyload" src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" data-src="api.php?get=cover&comic='+encodeURIComponent(comic)+'&issue='+encodeURIComponent(issue)+'" alt="'+issue+'"><p class="card-text">'+(issue.substr(0, issue.lastIndexOf('.')) || issue)+'</p></div>');
       var issueOptions = $('<a class="issueOptions" tabindex="0" role="button" data-toggle="popover" title="Options"><span class="oi oi-cog" title="Options" aria-hidden="true"></span></a>');
@@ -91,8 +87,12 @@ function getIssues(comic) {
         showIssue(comic, issue);
       });
     });
-    issues.hide().appendTo($('#wrapper')).fadeIn('slow', function() {
-      $("#wrapper img.lazyload").lazyload();
+    issues.append(title).append(issuesList);
+    $('#comics').fadeOut('slow', function() {
+      $(window).scrollTop($('#wrapper').offset().top - 16);
+      issues.fadeIn('slow', function() {
+        $("#wrapper img.lazyload").lazyload();
+      });
     });
     $('.btnHome').on('click', function() {
       goHome();
@@ -163,7 +163,7 @@ function goHome() {
   $('[data-toggle="popover"]').popover('hide');
   $('#issues').fadeOut('slow', function() {
     window.location.hash = '';
-    $('#issues').remove();
+    $('#issues').empty();
     $('#comics').fadeIn('slow');
     $('html, body').animate({
       scrollTop: lastPosition
