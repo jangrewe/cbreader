@@ -39,8 +39,10 @@ $(document).ready(function() {
 
   getComics();
   if(window.location.hash) {
-    $("#comics").hide();
-    getIssues(decodeURIComponent(window.location.hash.substring(1)));
+    if(window.location.hash.substring(1, 5) != 'row_') {
+      $("#comics").hide();
+      getIssues(decodeURIComponent(window.location.hash.substring(1)));
+    }
   }
 
 });
@@ -57,6 +59,13 @@ function getComics() {
         var title = $('<div class="row rowHeader alert alert-dark"><button type="button" class="btn btn-light btn-sm btnUp"><span class="oi oi-chevron-top"></span></button>'+curChar+'</div>');
         var comics = $('<div id="row_'+curChar+'" class="row rowComics"></div>');
         $('#comics').append(title).append(comics);
+        var navChar = $('<li class="nav-item"><a class="nav-link" href="#row_'+curChar+'">'+curChar+'</a></li>');
+        navChar.on('click', function() {
+          $('html, body').animate({
+            scrollTop: $('#row_'+curChar).offset().top - 142
+          }, 'fast');
+        });
+        $('#navChar').append(navChar);
       }
       prevChar = curChar;
       var comicCard = $('<div class="card" data-comic="'+comic+'"><img class="card-img-top lazyload" src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" data-src="api.php?get=cover&comic='+encodeURIComponent(comic)+'" alt="'+comic+'" width="195" height="292"><p class="card-text">'+comic+'</p></div>');
