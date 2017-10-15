@@ -1,7 +1,7 @@
 <?php
 include_once('config.php');
 
-$debug = true;
+$debug = false;
 $baseSize = 195; // also used in css/cbstar.css (+ 2*12 = 219px)
 $regexCover = '/(fc|00fc|cover|cov|cvr|front|\(cover\)|00c|00|01)\.(jpg|jpeg|png)$/i';
 
@@ -66,7 +66,7 @@ if($_GET['get'] == 'comics') {
 // get all issues for a comic
 } else if($_GET['get'] == 'issues' && !empty($_GET['comic'])) {
 
-  $allFiles = new DirectoryIterator($basePath.'/'.$_GET['comic']);
+  $allFiles = new DirectoryIterator(checkPath($basePath.'/'.$_GET['comic']));
   $files = new RegexIterator($allFiles, '/\.(cbz|cbr)$/');
   $arrFiles = array();
   foreach($files as $file) {
@@ -125,14 +125,14 @@ if($_GET['get'] == 'comics') {
 #
 
 function createComicThumb($comic) {
-  global $basePath, $baseSize;
+  global $basePath;
   $thumb = 'cache/'.md5($comic).'.jpg';  
-  $blob = file_get_contents($basePath.'/'.$comic.'/cover.jpg');
+  $blob = file_get_contents(checkPath($basePath.'/'.$comic.'/cover.jpg'));
   return renderThumb($thumb, $blob);
 }
 
 function createIssueThumb($file) {
-  global $basePath, $regexCover, $cbType;
+  global $cbType;
   $thumb = 'cache/'.md5($file).'.jpg';
   if($cbType == 'cbz') {
     if(!$files = getZipContents($file, true)) {
@@ -179,7 +179,7 @@ function renderThumb($thumb, $blob) {
 #
 
 function getPages($file, $cover = false) {
-  global $basePath, $regexCover, $cbType;
+  global $cbType;
   if ($cbType == 'cbz') {
     $files = getZipContents($file, $cover);  
   } else if ($cbType == 'cbr') {
@@ -197,7 +197,7 @@ function getPages($file, $cover = false) {
 }
 
 function getPage($file, $page, $cover = false) {
-  global $basePath, $cbType;
+  global $cbType;
   if ($cbType == 'cbz') {
     $blob = getFileFromZip($file, $page);
   } else if ($cbType == 'cbr') {
@@ -217,7 +217,7 @@ function getPage($file, $page, $cover = false) {
 function getZipContents($zipFile, $cover) {
   global $basePath, $regexCover;
   $zip = new ZipArchive();
-  if ($zip->open($basePath.'/'.$zipFile) !== true) {
+  if ($zip->open(checkPath($basePath.'/'.$zipFile)) !== true) {
     debug("Can't open File.");
     return false;
   }
@@ -240,7 +240,7 @@ function getZipContents($zipFile, $cover) {
 function getFileFromZip($zipFile, $file) {
   global $basePath;
   $zip = new ZipArchive();
-  if ($zip->open($basePath.'/'.$zipFile) !== true) {
+  if ($zip->open(checkPath($basePath.'/'.$zipFile)) !== true) {
     debug("Can't open File.");
     return false;
   }
@@ -258,7 +258,7 @@ function getFileFromZip($zipFile, $file) {
 
 function getRarContents($rarFile, $cover) {
   global $basePath, $regexCover;
-  $rar = RarArchive::open($basePath.'/'.$rarFile);
+  $rar = RarArchive::open(checkPath($basePath.'/'.$rarFile));
   if ($rar == false) {
     debug("Can't open File.");
     return false;
@@ -282,7 +282,7 @@ function getRarContents($rarFile, $cover) {
 
 function getFileFromRar($rarFile, $file) {
   global $basePath;
-  $rar = RarArchive::open($basePath.'/'.$rarFile);
+  $rar = RarArchive::open(checkPath($basePath.'/'.$rarFile));
   if ($rar == false) {
     debug("Can't open File.");
     return false;
@@ -308,5 +308,15 @@ function debug($string) {
   global $debug;
   if ($debug == true) {
     echo $string;
+  }
+}
+
+function checkPath($file) {
+  global $basePath;
+  if(strpos(realpath($file), $basePath) === 0) {
+    return realpath($file);
+  } else {
+    echo "nope.";
+    die;
   }
 }
