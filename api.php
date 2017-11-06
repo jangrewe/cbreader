@@ -300,7 +300,7 @@ function getFileFromRar($rarFile, $file) {
 #
 
 function isort($a, $b) {
-  return strcasecmp(strtolower($a), strtolower($b));
+  return strnatcasecmp($a, $b);
 }
 
 function debug($string) {
