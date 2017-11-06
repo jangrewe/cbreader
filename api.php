@@ -158,10 +158,9 @@ function renderThumb($thumb, $blob) {
   $width = $img->getImageWidth();
   $height = $img->getImageHeight();
   $thumbWidth = $baseSize;
-  if($height > $width) {
-    $thumbHeight = $baseSize/2*3;
-  }else{
-    $thumbHeight = $baseSize/3*2;    
+  $thumbHeight = $baseSize/2*3;
+  if($height < $width) {
+    $img->cropImage(floor($width/2), $height, floor($width/2), 0);
   }
 
   $img->cropThumbnailImage($thumbWidth, $thumbHeight);
