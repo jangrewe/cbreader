@@ -45,6 +45,10 @@ $(document).ready(function() {
     }
   }
 
+  $('.navbar-brand').on('click', function() {
+    goHome();
+  });
+
 });
 
 function getComics() {
@@ -108,6 +112,7 @@ function getIssues(comic) {
       });
     });
     issues.append(title).append(issuesList);
+    $('#navChar').fadeOut('slow');
     $('#comics').fadeOut('slow', function() {
       $('html, body').scrollTop($('#wrapper').offset().top - 72);
       issues.fadeIn('slow', function() {
@@ -182,6 +187,7 @@ $('#modalViewer').on('hidden.bs.modal', function (e) {
 
 function goHome() {
   $('[data-toggle="popover"]').popover('hide');
+  $('#navChar').fadeIn('slow');
   $('#issues').fadeOut('slow', function() {
     window.location.hash = '';
     $('#issues').empty();
