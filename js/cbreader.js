@@ -145,8 +145,9 @@ function getCovers(comic, issue, container, trigger, loadAll) {
   $.getJSON('api.php?get=pages&issue='+encodeURIComponent(issue)+'&comic='+encodeURIComponent(comic)+((loadAll == true)?'':'&cover=true'), function(data) {
     var covers = $('<div />');
     $.each(data.pages, function(i, page) {
-      covers.append('<img class="selectCover" data-page="'+page+'" src="api.php?page='+encodeURIComponent(page)+'&issue='+encodeURIComponent(issue)+'&comic='+encodeURIComponent(comic)+'&cover=true"/>');
+      covers.append('<img class="selectCover lazyload" data-page="'+page+'" src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" data-src="api.php?page='+encodeURIComponent(page)+'&issue='+encodeURIComponent(issue)+'&comic='+encodeURIComponent(comic)+'&cover=true"/>');
     });
+    covers.find("img.lazyload").lazyload();
     var loadAll = $('<div class="loadAllCovers"><a tabindex="0" role="button"><span class="oi oi-reload"></span></a></div>');
     loadAll.on('click', function() {
       getCovers(comic, issue, container, trigger, true);
