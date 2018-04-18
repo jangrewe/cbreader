@@ -1,2 +1,4 @@
 config.php
 cache
+*.iml
+*.idea
