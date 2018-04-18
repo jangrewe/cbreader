@@ -1,55 +1,75 @@
 html, body {
   height: 100%;
+  font-family: 'Roboto', sans-serif;
 }
 
 body {
   margin-top: 56px;
 }
 
-.cbreader {
-  min-height: 100%;
-}
-
 .navbar {
   margin-bottom: 0;
-}
-
-.cbreader {
-  padding-top: 1rem;
-  padding-bottom: 1rem;
-  background-color: #f7f7f7;
-}
-
-.rowHeader {
-  font-size: 1.3rem;
   font-weight: bolder;
 }
 
-.rowHeader button {
-  margin-right: 25px;
+.cbreader {
+  min-height: 100%;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  background-color: #ffffff;
 }
 
-.rowComics {
-  margin-bottom: 16px;
+.rowHeader {
+  font-weight: bolder;
+}
+
+#comics .rowHeader {
+  margin: 10px 0 20px 0;
+}
+
+#issues .rowHeader {
+  font-size: 1.5em;
+}
+
+#issues .rowHeader button {
+  margin-right: 15px;
+}
+
+.rowHeader .curChar {
+  font-size: 10rem;
+  line-height: none;
+  color: #e5e5e5;
+}
+
+.rowChar {
+  margin-bottom: 50px;
+}
+
+.shadow {
+  box-shadow: 0px 2px 4px -1px rgba(0, 0, 0, 0.2), 0px 4px 5px 0px rgba(0, 0, 0, 0.14), 0px 1px 10px 0px rgba(0, 0, 0, 0.12);
+  transition: box-shadow 0.28s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .card {
   float: left;
-  width: 219px;
-  padding: .75rem;
-  margin: 3px;
+  width: 208px;
+  margin: 10px;
   cursor: pointer;
 }
 
 .card > img {
-  width: 195px;
-  height: 292px;
-  margin-bottom: .75rem;
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+  object-position: 50% 0;
 }
 
 .card-text {
-  font-size: 75%;
-  text-align: center;
+  font-size: .75em;
+  font-weight: bolder;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
 }
 
 .issueOptions {

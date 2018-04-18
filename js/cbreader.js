@@ -55,31 +55,38 @@ function getComics() {
   $("#comics").spin('spinLarge', '#000');
   $.getJSON('api.php?get=comics', function(data) {
     $("#comics").spin(false);
-    var prevChar = null;
-    var curRow = null;
+    var prevChar, curRow, curComics;
     $.each(data.comics, function(i, comic) {
-      var curChar = comic.charAt(0)
-      if(curChar != prevChar) {
-        var title = $('<div class="row rowHeader alert alert-dark"><button class="btn btn-light btn-sm btnUp"><span class="oi oi-chevron-top"></span></button>'+curChar+'</div>');
-        var comics = $('<div id="row_'+curChar+'" class="row rowComics"></div>');
-        $('#comics').append(title).append(comics);
+      var curChar = comic.charAt(0);
+      if(curChar !== prevChar) {
+        curRow = $('<div  id="row_'+curChar+'" class="row rowChar"/>');
+        var title = $('<div class="col-md-1 rowHeader text-center"><button class="btn btn-block btn-sm btnUp"><span class="oi oi-chevron-top"></span></button><span class="curChar">'+curChar+'</span></div>');
+        curComics = $('<div class="col-md-11 rowComics"></div>');
+        curRow.append(title).append(curComics);
+        $('#comics').append(curRow);
         var navChar = $('<li class="nav-item"><a class="nav-link" href="#row_'+curChar+'">'+curChar+'</a></li>');
         navChar.on('click', function() {
           $('html, body').animate({
-            scrollTop: $('#row_'+curChar).offset().top - 142
+            scrollTop: $('#row_'+curChar).offset().top - 60
           }, 'fast');
         });
         $('#navChar').append(navChar);
       }
       prevChar = curChar;
-      var comicCard = $('<div class="card" data-comic="'+comic+'"><img class="card-img-top lazyload" src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" data-src="api.php?get=cover&comic='+encodeURIComponent(comic)+'" alt="'+comic+'" width="195" height="292"><p class="card-text">'+comic+'</p></div>');
+      var comicCard = $('<div class="card shadow text-center" data-comic="'+comic+'">' +
+          '<img class="card-img-top lazyload" src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" data-src="api.php?get=cover&comic='+encodeURIComponent(comic)+'" alt="'+comic+'">' +
+          '<div class="card-body">' +
+            '<p class="card-text" data-toggle="tooltip" data-placement="top" title="'+comic+'">'+comic+'</p>' +
+          '</div>' +
+        '</div>');
       comicCard.on('click', function() {
         lastPosition = $(window).scrollTop();
         getIssues(comic);
       });
-      $('#comics #row_'+curChar).append(comicCard);
+      $(curComics).append(comicCard);
     });
-    $("#comics img.lazyload").lazyload();
+    $("#comics").find("img.lazyload").lazyload();
+    $('[data-toggle="tooltip"]').tooltip();
     $('.btnUp').on('click', function() {
       $('html, body').animate({
         scrollTop: 0
@@ -98,7 +105,12 @@ function getIssues(comic) {
     var title = $('<div class="row rowHeader alert alert-dark"><button class="btn btn-light btn-sm btnHome"><span class="oi oi-chevron-left"></span></button>'+comic+'</div>');
     var issuesList = $('<div class="row rowComics"></div>');
     $.each(data.issues, function(i, issue) {
-      var issueCard = $('<div class="card" data-comic="'+comic+'" data-issue="'+issue+'"><img class="card-img-top lazyload" src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" data-src="api.php?get=cover&comic='+encodeURIComponent(comic)+'&issue='+encodeURIComponent(issue)+'" alt="'+issue+'"><p class="card-text">'+(issue.substr(0, issue.lastIndexOf('.')) || issue)+'</p></div>');
+      var issueCard = $('<div class="card shadow text-center" data-comic="'+comic+'" data-issue="'+issue+'">' +
+          '<img class="card-img-top lazyload" src="data:image/gif;base64,R0lGODdhAQABAPAAAMPDwwAAACwAAAAAAQABAAACAkQBADs=" data-src="api.php?get=cover&comic='+encodeURIComponent(comic)+'&issue='+encodeURIComponent(issue)+'" alt="'+issue+'">' +
+          '<div class="card-body">' +
+            '<p class="card-text" data-toggle="tooltip" data-placement="top" title="'+issue+'">'+(issue.substr(0, issue.lastIndexOf('.')) || issue)+'</p>' +
+          '</div>' +
+        '</div>');
       var issueOptions = $('<a class="issueOptions" tabindex="0" role="button" data-toggle="popover" title="Options"><span class="oi oi-cog" title="Options" aria-hidden="true"></span></a>');
       issueCard.hover(function() {
         issueOptions.stop().fadeIn('slow');
@@ -122,6 +134,7 @@ function getIssues(comic) {
     $('.btnHome').on('click', function() {
       goHome();
     });
+    $('[data-toggle="tooltip"]').tooltip();
     $('[data-toggle="popover"]').popover(popoverOpts).on('shown.bs.popover', function () {
       var comic = $(this).parent().data('comic');
       var issue = $(this).parent().data('issue');
