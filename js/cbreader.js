@@ -56,10 +56,11 @@ function getComics() {
   $.getJSON('api.php?get=comics', function(data) {
     $("#comics").spin(false);
     var prevChar, curRow, curComics;
+    var rowIdx = 0;
     $.each(data.comics, function(i, comic) {
       var curChar = comic.charAt(0);
       if(curChar !== prevChar) {
-        curRow = $('<div  id="row_'+curChar+'" class="row rowChar"/>');
+        curRow = $('<div  id="row_'+curChar+'" class="row rowChar row_'+((rowIdx%2)?'odd':'even')+'"/>');
         var title = $('<div class="col-md-1 rowHeader text-center"><button class="btn btn-block btn-sm btnUp"><span class="oi oi-chevron-top"></span></button><span class="curChar">'+curChar+'</span></div>');
         curComics = $('<div class="col-md-11 rowComics"></div>');
         curRow.append(title).append(curComics);
@@ -67,10 +68,11 @@ function getComics() {
         var navChar = $('<li class="nav-item"><a class="nav-link" href="#row_'+curChar+'">'+curChar+'</a></li>');
         navChar.on('click', function() {
           $('html, body').animate({
-            scrollTop: $('#row_'+curChar).offset().top - 60
+            scrollTop: $('#row_'+curChar).offset().top - 55
           }, 'fast');
         });
         $('#navChar').append(navChar);
+        rowIdx++;
       }
       prevChar = curChar;
       var comicCard = $('<div class="card shadow text-center" data-comic="'+comic+'">' +
